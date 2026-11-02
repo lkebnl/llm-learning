@@ -54,6 +54,9 @@ python3 bootstrap/setup.py          # 默认 lkebnl/llm-learning，public；--pr
 
 计划内容的源文件是 [bootstrap/plan.json](bootstrap/plan.json)。
 
-## 4060 备注
+## RTX 5060 备注
 
-8GB 显存：从零训练几十 M 到约 150M 参数（BF16 + 梯度累积）；QLoRA 3–4B 舒服、7–8B 勉强；llama.cpp Q4 的 7–8B 可全部放进显存。
+- **架构**：Blackwell（sm_120）。驱动需 ≥ 570（`nvidia-smi` 显示 CUDA Version ≥ 12.8）；PyTorch 需 cu128 或更新的版本：`pip install torch --index-url https://download.pytorch.org/whl/cu128`。旧版本会报 `no kernel image is available`。
+- **8GB 显存**：从零训练几十 M 到约 150M 参数（BF16 + 梯度累积）；QLoRA 3–4B 舒服、7–8B 勉强；llama.cpp Q4 的 7–8B 可全部放进显存。如果是 5060 Ti 16GB，规模可放大一倍左右。
+- **带宽** 448 GB/s（4060 为 272 GB/s）；支持 FP8/FP4，第 11 周量化时可以实验。
+- 代码、模型和数据放在不同步的目录（如 `C:\llm`），不要放 OneDrive。
