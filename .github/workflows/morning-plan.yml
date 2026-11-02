@@ -1,0 +1,50 @@
+name: Morning plan
+
+# 每天（含周末）纽约 06:00 起生成当天学习计划，全部由代码生成，不调用 AI。
+# 每 30 分钟重试一次：第一次成功后，后续运行发现当天文件已存在即跳过。
+# UTC 10–12 点的 :17 / :47 → EDT 06:17–08:47，EST 05:17–07:47（06:00 前的由脚本跳过）。
+on:
+  schedule:
+    - cron: "17,47 10,11,12 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "忽略时间与重复检查，立即重新生成今天的计划"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: read
+
+concurrency:
+  group: worklog
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build today's plan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          REPORT_LANG: zh
+          WORKLOG_DAYS: all
+          # 读取 Project 的 Status 字段需要带 read:project 的 token（setup.sh 会配置）。
+          # 未配置时自动退化为按最近更新列出所有 open issue。
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+        run: python3 .github/scripts/worklog.py plan --at-hour 6 ${{ inputs.force && '--force' || '' }}
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plans
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "plan: $(TZ=America/New_York date +%F)"
+          git pull --rebase --autostash
+          git push

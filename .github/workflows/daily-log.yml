@@ -1,0 +1,49 @@
+name: Daily study log
+
+# 每天（含周末）纽约 22:00 起自动抓取当天学习记录，全部由代码生成，不调用 AI。
+# 学习主要在晚上和周末，所以和 work-log 不同：每天都跑，时间放在 22:00 之后。
+# GitHub 定时任务常延迟甚至被丢弃，所以多排几次：第一次成功后，后续运行发现当天文件已存在即跳过。
+# cron 只认 UTC，脚本按纽约时间判断时刻（22:00 前跳过）：
+#   EDT：22:17 22:47 23:17 23:47
+#   EST：22:17 22:47 23:17 23:47（21:xx 的两次跳过）
+on:
+  schedule:
+    - cron: "17,47 2,3,4 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "忽略时间与重复检查，立即重新生成今天的记录"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: read
+
+concurrency:
+  group: worklog
+  cancel-in-progress: false
+
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Collect today's activity
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          REPORT_LANG: zh
+          WORKLOG_DAYS: all
+        run: python3 .github/scripts/worklog.py log --at-hour 22 ${{ inputs.force && '--force' || '' }}
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add logs
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "log: $(TZ=America/New_York date +%F)"
+          git pull --rebase --autostash
+          git push

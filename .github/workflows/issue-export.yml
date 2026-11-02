@@ -1,0 +1,87 @@
+name: Export issue
+
+# 把一个 issue 连同所有层级的子 issue、评论和图片导出成 Markdown + PDF。
+# PDF 每个 issue 一页（页高随内容，不会在 issue 中间断开），带层级书签；勾选 single_page 则全部放一页。
+# 两种触发方式：
+#   1. Actions → Export issue → Run workflow，填 issue 编号
+#   2. 在任意 issue 下评论 /export（仅仓库 owner），导出当前 issue，完成后自动回复链接
+# 结果提交到 exports/issue-<N>/，同时作为 workflow artifact 上传。
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "Issue 编号（会递归包含所有子 issue）"
+        required: true
+        type: number
+      commit:
+        description: "提交到仓库 exports/ 目录（否则只上传 artifact）"
+        type: boolean
+        default: true
+      single_page:
+        description: "全部内容放在一页（默认每个 issue 一页）"
+        type: boolean
+        default: false
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: worklog
+  cancel-in-progress: false
+
+jobs:
+  export:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (startsWith(github.event.comment.body, '/export') && github.event.comment.author_association == 'OWNER')
+    runs-on: ubuntu-latest
+    env:
+      ISSUE: ${{ github.event_name == 'workflow_dispatch' && inputs.issue || github.event.issue.number }}
+      COMMIT: ${{ github.event_name != 'workflow_dispatch' || inputs.commit }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: React to command
+        if: github.event_name == 'issue_comment'
+        run: gh api -X POST "repos/$REPO/issues/comments/${{ github.event.comment.id }}/reactions" -f content=eyes >/dev/null
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright + CJK fonts
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk >/dev/null
+          pip install -q playwright pypdf
+          python -m playwright install --with-deps chromium
+
+      - name: Export
+        run: python3 .github/scripts/issue_export.py "$ISSUE" --out exports ${{ inputs.single_page && '--single-page' || '' }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue-${{ env.ISSUE }}
+          path: exports/issue-${{ env.ISSUE }}
+
+      - name: Commit
+        if: env.COMMIT == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "exports/issue-$ISSUE"
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "export: issue #$ISSUE ($(TZ=America/New_York date '+%F %H:%M'))"
+          git pull --rebase --autostash
+          git push
+
+      - name: Reply with links
+        if: github.event_name == 'issue_comment'
+        run: |
+          base="https://github.com/$REPO/blob/${{ github.event.repository.default_branch }}/exports/issue-$ISSUE"
+          run="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          gh issue comment "$ISSUE" -R "$REPO" --body "Exported (with all sub-issues): [PDF]($base/issue-$ISSUE.pdf) · [Markdown]($base/issue-$ISSUE.md) · [run / artifact]($run)"

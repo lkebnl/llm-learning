@@ -1,0 +1,305 @@
+{
+ "project_title": "大模型学习",
+ "epics": [
+  {
+   "key": "basics",
+   "title": "[基础] 反向传播与 PyTorch（第 0–2 周）",
+   "status": "In Progress",
+   "start": "2026-11-01",
+   "target": "2026-11-15",
+   "body": "阶段一：基础。长期开着，进展写在下面的子任务里。\n\n完成标准：能手推 softmax + 交叉熵的梯度，能解释学习率对 loss 曲线的影响。"
+  },
+  {
+   "key": "transformer",
+   "title": "[Transformer] Tokenizer 到完整 GPT（第 3–5 周）",
+   "status": "Backlog",
+   "start": "2026-11-16",
+   "target": "2026-12-06",
+   "body": "阶段二：Transformer，重中之重。\n\n完成标准：不看代码写出 attention 每一步的 shape；给定配置手算参数量并与代码输出对上。"
+  },
+  {
+   "key": "pretrain",
+   "title": "[预训练] 训练、显存与 Scaling（第 6–8 周）",
+   "status": "Backlog",
+   "start": "2026-12-07",
+   "target": "2026-12-27",
+   "body": "阶段三：预训练。第 8 周是核心概念里程碑。\n\n完成标准：不看参考重写一个 GPT 并在 4060 上训练出合理的 loss 曲线。"
+  },
+  {
+   "key": "posttrain",
+   "title": "[后训练] SFT、LoRA 与对齐（第 9–10 周）",
+   "status": "Backlog",
+   "start": "2026-12-28",
+   "target": "2027-01-10",
+   "body": "阶段四上半：后训练。\n\n完成标准：在 4060 上跑通 SFT → QLoRA → DPO，并能解释每一步训练的是什么。"
+  },
+  {
+   "key": "inference",
+   "title": "[推理] KV cache、量化与推理引擎（第 11–12 周）",
+   "status": "Backlog",
+   "start": "2027-01-11",
+   "target": "2027-01-24",
+   "body": "阶段四下半：推理。第 12 周是全链路里程碑。\n\n完成标准：给自己的 GPT 加上 KV cache；读懂 nano-vllm 的调度器。"
+  }
+ ],
+ "inbox": {
+  "title": "[Inbox] 问题与想法",
+  "status": "Backlog",
+  "body": "零散的问题、想法、想深挖的点先记在这里的评论里；值得做的再拆成独立 issue。长期开着。"
+ },
+ "weeks": [
+  {
+   "epic": "basics",
+   "title": "W00 搭建 4060 学习环境",
+   "start": "2026-11-01",
+   "target": "2026-11-01",
+   "status": "Todo",
+   "topic": "驱动、CUDA、PyTorch、Python 环境",
+   "resources": [
+    "[PyTorch 安装](https://pytorch.org/get-started/locally/)"
+   ],
+   "tasks": [
+    "`nvidia-smi` 能看到 4060，记录驱动和 CUDA 版本",
+    "装好 PyTorch，`torch.cuda.is_available()` 为 True",
+    "用 conda 或 uv 建一个独立环境",
+    "clone nanoGPT 和 MiniMind"
+   ],
+   "done": [
+    "跑一个 4096×4096 矩阵乘法，记录 FP32 / BF16 的耗时，作为之后估算的基准"
+   ]
+  },
+  {
+   "epic": "basics",
+   "title": "W01 反向传播与 autograd",
+   "start": "2026-11-02",
+   "target": "2026-11-08",
+   "status": "Todo",
+   "topic": "反向传播、计算图、PyTorch autograd",
+   "resources": [
+    "[Zero to Hero：micrograd](https://karpathy.ai/zero-to-hero.html)",
+    "[micrograd](https://github.com/karpathy/micrograd)"
+   ],
+   "tasks": [
+    "跟着视频手写 micrograd",
+    "用 micrograd 训练一个小 MLP",
+    "和 PyTorch autograd 对比同一个例子的梯度"
+   ],
+   "done": [
+    "手推 softmax + 交叉熵的梯度，结果是 `p - y`"
+   ]
+  },
+  {
+   "epic": "basics",
+   "title": "W02 语言模型、优化器与归一化",
+   "start": "2026-11-09",
+   "target": "2026-11-15",
+   "status": "Backlog",
+   "topic": "字符级语言模型、MLP、AdamW、学习率 warmup/cosine、LayerNorm",
+   "resources": [
+    "[Zero to Hero：makemore 1–3](https://karpathy.ai/zero-to-hero.html)"
+   ],
+   "tasks": [
+    "makemore 字符级模型在 4060 上训练",
+    "试三个学习率，保存 loss 曲线对比",
+    "加上 warmup + cosine 调度"
+   ],
+   "done": [
+    "解释学习率太大 / 太小时 loss 曲线分别长什么样"
+   ]
+  },
+  {
+   "epic": "transformer",
+   "title": "W03 BPE Tokenizer 与 Embedding",
+   "start": "2026-11-16",
+   "target": "2026-11-22",
+   "status": "Backlog",
+   "topic": "BPE、词表大小的权衡、embedding",
+   "resources": [
+    "[Let's build the GPT Tokenizer](https://karpathy.ai/zero-to-hero.html)",
+    "[minbpe](https://github.com/karpathy/minbpe)"
+   ],
+   "tasks": [
+    "手写 BPE 训练和编码/解码",
+    "在中英文混合文本上训练一个 BPE",
+    "对比同一段话在不同词表下的 token 数"
+   ],
+   "done": [
+    "解释为什么中文比英文更“费 token”"
+   ]
+  },
+  {
+   "epic": "transformer",
+   "title": "W04 Self-attention",
+   "start": "2026-11-23",
+   "target": "2026-11-29",
+   "status": "Backlog",
+   "topic": "Q/K/V、缩放点积、causal mask、多头（感恩节周，量可以少一点）",
+   "resources": [
+    "[3Blue1Brown 神经网络系列](https://www.3blue1brown.com/topics/neural-networks)",
+    "[The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/)",
+    "[Let's build GPT（前半）](https://karpathy.ai/zero-to-hero.html)"
+   ],
+   "tasks": [
+    "手写单头 attention（和 Claude 的第一课）",
+    "加上 causal mask 和多头",
+    "用小输入逐步打印每一步的 shape"
+   ],
+   "done": [
+    "不看代码写出 attention 每一步的 tensor shape",
+    "解释为什么要除以 √d_k"
+   ]
+  },
+  {
+   "epic": "transformer",
+   "title": "W05 完整 GPT block 与现代变体",
+   "start": "2026-11-30",
+   "target": "2026-12-06",
+   "status": "Backlog",
+   "topic": "FFN、残差、LayerNorm；RoPE、RMSNorm、SwiGLU、GQA",
+   "resources": [
+    "[Let's build GPT（后半）](https://karpathy.ai/zero-to-hero.html)",
+    "[nanoGPT](https://github.com/karpathy/nanoGPT)",
+    "[The Annotated Transformer](https://nlp.seas.harvard.edu/annotated-transformer/)"
+   ],
+   "tasks": [
+    "nanoGPT 跑莎士比亚字符级模型",
+    "读 nanoGPT 的 model.py，逐行注释",
+    "列出 nanoGPT 和 Llama 结构的差异"
+   ],
+   "done": [
+    "给定配置手算参数量，与代码输出对上"
+   ]
+  },
+  {
+   "epic": "pretrain",
+   "title": "W06 预训练与显存",
+   "start": "2026-12-07",
+   "target": "2026-12-13",
+   "status": "Backlog",
+   "topic": "next-token 目标、perplexity、混合精度、梯度累积、gradient checkpointing",
+   "resources": [
+    "[Let's reproduce GPT-2](https://karpathy.ai/zero-to-hero.html)",
+    "[MiniMind](https://github.com/jingyaogong/minimind)"
+   ],
+   "tasks": [
+    "nanoGPT 在 TinyStories 上训练一个小模型",
+    "分别开关 BF16、梯度累积、checkpointing，记录显存和速度"
+   ],
+   "done": [
+    "算清 8GB 里权重、梯度、优化器状态、激活各占多少，并和 `torch.cuda.max_memory_allocated()` 对照"
+   ]
+  },
+  {
+   "epic": "pretrain",
+   "title": "W07 Scaling law 与数据",
+   "start": "2026-12-14",
+   "target": "2026-12-20",
+   "status": "Backlog",
+   "topic": "Chinchilla scaling law、数据清洗与配比",
+   "resources": [
+    "[MiniMind](https://github.com/jingyaogong/minimind)",
+    "[Stanford CS336](https://stanford-cs336.github.io/)"
+   ],
+   "tasks": [
+    "MiniMind 从零预训练",
+    "读 MiniMind 的数据处理代码"
+   ],
+   "done": [
+    "解释参数量和训练 token 数该怎么配"
+   ]
+  },
+  {
+   "epic": "pretrain",
+   "title": "W08 复习：从零重写 GPT（里程碑）",
+   "start": "2026-12-21",
+   "target": "2026-12-27",
+   "status": "Backlog",
+   "topic": "复习 + 缓冲（圣诞周）",
+   "resources": [],
+   "tasks": [
+    "不看参考重写 GPT（tokenizer 可复用）",
+    "在 4060 上训练并保存 loss 曲线",
+    "补完前面没完成的检查点"
+   ],
+   "done": [
+    "核心概念里程碑：前 8 周所有检查点都能答上"
+   ]
+  },
+  {
+   "epic": "posttrain",
+   "title": "W09 SFT 与 LoRA/QLoRA",
+   "start": "2026-12-28",
+   "target": "2027-01-03",
+   "status": "Backlog",
+   "topic": "SFT、chat template、LoRA/QLoRA（元旦周）",
+   "resources": [
+    "[MiniMind](https://github.com/jingyaogong/minimind)",
+    "[Unsloth](https://github.com/unslothai/unsloth)"
+   ],
+   "tasks": [
+    "MiniMind 跑 SFT 和 LoRA",
+    "Unsloth QLoRA 微调 Qwen 3–4B，记录显存占用"
+   ],
+   "done": [
+    "解释 LoRA 为什么省显存，省在哪"
+   ]
+  },
+  {
+   "epic": "posttrain",
+   "title": "W10 对齐：RLHF、DPO、GRPO",
+   "start": "2027-01-04",
+   "target": "2027-01-10",
+   "status": "Backlog",
+   "topic": "RLHF/PPO、DPO、GRPO",
+   "resources": [
+    "[MiniMind](https://github.com/jingyaogong/minimind)",
+    "[Hugging Face LLM Course](https://huggingface.co/learn/llm-course)"
+   ],
+   "tasks": [
+    "MiniMind 跑 DPO",
+    "对比 DPO 前后的回答"
+   ],
+   "done": [
+    "说出 DPO 和 PPO 各自需要哪些模型"
+   ]
+  },
+  {
+   "epic": "inference",
+   "title": "W11 采样、KV cache 与量化",
+   "start": "2027-01-11",
+   "target": "2027-01-17",
+   "status": "Backlog",
+   "topic": "采样策略、KV cache、INT8/INT4 量化、GGUF",
+   "resources": [
+    "[llama.cpp](https://github.com/ggml-org/llama.cpp)",
+    "[LLMs-from-scratch](https://github.com/rasbt/LLMs-from-scratch)"
+   ],
+   "tasks": [
+    "给自己的 GPT 加 KV cache，对比生成速度",
+    "llama.cpp 跑 Q4 量化的 7–8B 模型",
+    "试 temperature / top-p 对输出的影响"
+   ],
+   "done": [
+    "算出 KV cache 显存随上下文长度的增长"
+   ]
+  },
+  {
+   "epic": "inference",
+   "title": "W12 推理引擎（里程碑）",
+   "start": "2027-01-18",
+   "target": "2027-01-24",
+   "status": "Backlog",
+   "topic": "PagedAttention、continuous batching、FlashAttention、speculative decoding、MoE",
+   "resources": [
+    "[nano-vllm](https://github.com/GeeeekExplorer/nano-vllm)"
+   ],
+   "tasks": [
+    "读 nano-vllm 的调度器和 block manager",
+    "画出一次请求在引擎里的流程"
+   ],
+   "done": [
+    "全链路里程碑：能讲清一个请求从进入引擎到输出 token 的全过程"
+   ]
+  }
+ ]
+}
